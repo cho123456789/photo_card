@@ -23,10 +23,10 @@ class MemberQuizPage extends ConsumerWidget {
         data: (memberList) {
           const memberSections = {
             'liv_images': 'Liv',
-            'mei': 'Mei',
-            'jena': 'Jena',
-            'woni': 'Woni',
-            'minami': 'Minami',
+            'mei_images': 'Mei',
+            'jena_images': 'Jena',
+            'woni_images': 'Woni',
+            'minami_images': 'Minami',
           };
 
           return RefreshIndicator(
@@ -39,8 +39,15 @@ class MemberQuizPage extends ConsumerWidget {
                 final memberName = entry.value;
 
                 final membersForSection = memberList
-                    .where((member) => member.memberName == tableName)
+                    .where(
+                      (member) =>
+                          member.memberName.toLowerCase() ==
+                          memberName.toLowerCase(),
+                    )
                     .toList();
+
+                // debugPrint('멤버 이름: ${memberName}');
+                // debugPrint('이미지 목록: ${memberList}');
 
                 final imageUrls = membersForSection
                     .expand((member) => member.imageUrls)
@@ -68,11 +75,11 @@ class MemberQuizPage extends ConsumerWidget {
                           physics: const NeverScrollableScrollPhysics(),
                           itemCount: imageUrls.length,
                           gridDelegate:
-                          const SliverGridDelegateWithFixedCrossAxisCount(
-                            crossAxisCount: 3,
-                            crossAxisSpacing: 8,
-                            mainAxisSpacing: 8,
-                          ),
+                              const SliverGridDelegateWithFixedCrossAxisCount(
+                                crossAxisCount: 3,
+                                crossAxisSpacing: 8,
+                                mainAxisSpacing: 8,
+                              ),
                           itemBuilder: (context, imageIndex) {
                             return ClipRRect(
                               borderRadius: BorderRadius.circular(12),
