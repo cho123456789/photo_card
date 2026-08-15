@@ -1,5 +1,14 @@
 # Pocket Binder
 
-Flutter and Riverpod based photocard binder prototype.
+Flutter와 Riverpod으로 만든 포토카드 바인더 앱입니다.
 
-`BinderNotifier` manages the collection, scanner state, capture flow, and selected tab locally. This project has no Supabase configuration or dependency.
+## 주요 기능
+
+- 멤버·그룹별 포토카드 컬렉션 생성 및 관리
+- 빈 포토카드 슬롯을 탭해 카드 정보 입력과 사진 스캔·등록
+- 등록된 포토카드의 앨범, 버전, 입수 정보, 가격, 메모 기록
+- 카드 삭제 시 등록 사진과 입력한 카드 정보 전체 삭제
+- 커버 이미지·제목·테마를 설정하는 세로형 바인더 표지 꾸미기
+- 기기에 데이터를 저장해 앱을 다시 실행해도 컬렉션 유지
+
+`BinderNotifier`가 컬렉션, 스캔 상태, 선택된 바인더를 로컬에서 관리합니다. 이 프로젝트는 Supabase 설정이나 의존성이 없습니다.
