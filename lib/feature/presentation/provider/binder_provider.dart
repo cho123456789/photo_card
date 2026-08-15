@@ -74,7 +74,7 @@ class BinderNotifier extends Notifier<BinderState> {
     _save();
   }
 
-  void addCard({
+  PhotoCard addCard({
     required String collectionId,
     required String title,
     String album = '',
@@ -96,6 +96,7 @@ class BinderNotifier extends Notifier<BinderState> {
     );
     state = state.copyWith(cards: [...state.cards, card]);
     _save();
+    return card;
   }
 
   void updateCardRecord({
@@ -131,7 +132,6 @@ class BinderNotifier extends Notifier<BinderState> {
     required String coverTitle,
     required String coverSubtitle,
     required String themeId,
-    required List<String> stickerIds,
   }) {
     state = state.copyWith(
       binders: state.binders
@@ -143,7 +143,6 @@ class BinderNotifier extends Notifier<BinderState> {
                     coverTitle: coverTitle,
                     coverSubtitle: coverSubtitle,
                     themeId: themeId,
-                    stickerIds: stickerIds,
                   )
                 : binder,
           )
@@ -166,12 +165,7 @@ class BinderNotifier extends Notifier<BinderState> {
 
   Future<void> deleteCard(PhotoCard card) async {
     state = state.copyWith(
-      cards: state.cards
-          .map(
-            (item) =>
-                item.id == card.id ? item.copyWith(clearImage: true) : item,
-          )
-          .toList(),
+      cards: state.cards.where((item) => item.id != card.id).toList(),
     );
     _save();
     await _deleteImage(card);

@@ -24,7 +24,7 @@ class BinderCover extends StatelessWidget {
     return ClipRRect(
       borderRadius: BorderRadius.circular(compact ? 12 : 20),
       child: AspectRatio(
-        aspectRatio: compact ? .78 : 1.65,
+        aspectRatio: compact ? .78 : .72,
         child: Stack(
           fit: StackFit.expand,
           children: [
@@ -43,21 +43,6 @@ class BinderCover extends StatelessWidget {
                   end: Alignment.topCenter,
                   colors: [Colors.black.withValues(alpha: .70), Colors.transparent],
                 ),
-              ),
-            ),
-            Positioned(
-              top: compact ? 8 : 16,
-              right: compact ? 8 : 18,
-              child: Wrap(
-                spacing: 2,
-                children: binder.stickerIds
-                    .map(
-                      (id) => Text(
-                        _sticker(id),
-                        style: TextStyle(fontSize: compact ? 14 : 25),
-                      ),
-                    )
-                    .toList(),
               ),
             ),
             Positioned(
@@ -94,12 +79,4 @@ class BinderCover extends StatelessWidget {
       gradient: LinearGradient(colors: colors, begin: Alignment.topLeft, end: Alignment.bottomRight),
     ),
   );
-
-  String _sticker(String id) => switch (id) {
-    'heart' => '♥',
-    'ribbon' => '🎀',
-    'star' => '★',
-    _ => '✦',
-  };
-
 }

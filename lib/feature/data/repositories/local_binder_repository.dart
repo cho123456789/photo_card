@@ -46,8 +46,6 @@ class LocalBinderRepository implements BinderRepository {
             coverTitle: data['coverTitle'] as String?,
             coverSubtitle: data['coverSubtitle'] as String?,
             themeId: (data['themeId'] as String?) ?? 'glitter',
-            stickerIds: (data['stickerIds'] as List<dynamic>? ?? [])
-                .cast<String>(),
           ),
         );
       }
@@ -99,7 +97,6 @@ class LocalBinderRepository implements BinderRepository {
                 'coverTitle': binder.coverTitle,
                 'coverSubtitle': binder.coverSubtitle,
                 'themeId': binder.themeId,
-                'stickerIds': binder.stickerIds,
               },
             )
             .toList(),

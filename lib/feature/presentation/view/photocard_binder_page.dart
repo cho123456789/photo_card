@@ -56,13 +56,16 @@ class PhotocardBinderPage extends ConsumerWidget {
               onAddCard: () => _createCard(context, ref, selected.id),
               onDecorate: () => _decorateBinder(context, ref, selected),
               onRecord: (card) => _recordCard(context, ref, card),
+              onRegisterCard: (card) => _registerSlot(context, ref, card),
             ),
-      floatingActionButton: _ScanButton(
-        isSaving: state.isSaving,
-        hasCollections: state.binders.isNotEmpty,
-        onCreate: () => _createCollection(context, ref),
-        onScan: () => _selectCardAndScan(context, ref),
-      ),
+      floatingActionButton: selected == null && state.binders.isEmpty
+          ? _ScanButton(
+              isSaving: state.isSaving,
+              hasCollections: false,
+              onCreate: () => _createCollection(context, ref),
+              onScan: () {},
+            )
+          : null,
     );
   }
 
@@ -106,7 +109,6 @@ class PhotocardBinderPage extends ConsumerWidget {
       coverTitle: input.coverTitle,
       coverSubtitle: input.coverSubtitle,
       themeId: input.themeId,
-      stickerIds: input.stickerIds,
     );
   }
 
@@ -118,6 +120,23 @@ class PhotocardBinderPage extends ConsumerWidget {
         .addBinder(name: input.name, group: input.group);
   }
 
+  Future<void> _registerSlot(
+    BuildContext context,
+    WidgetRef ref,
+    PhotoCard card,
+  ) async {
+    final notifier = ref.read(binderProvider.notifier);
+    notifier.setSaving(true);
+    try {
+      final imagePath = await ref.read(photocardScannerProvider).scanAndStore();
+      if (imagePath != null) {
+        notifier.registerCardPhoto(cardId: card.id, imagePath: imagePath);
+      }
+    } finally {
+      notifier.setSaving(false);
+    }
+  }
+
   Future<void> _createCard(
     BuildContext context,
     WidgetRef ref,
@@ -125,43 +144,15 @@ class PhotocardBinderPage extends ConsumerWidget {
   ) async {
     final input = await showCreatePhotoCardDialog(context);
     if (input == null || !context.mounted) return;
-    ref
-        .read(binderProvider.notifier)
-        .addCard(collectionId: collectionId, title: input.title);
-  }
-
-  Future<void> _selectCardAndScan(BuildContext context, WidgetRef ref) async {
-    final collectionId = await showMemberPicker(
-      context,
-      ref.read(binderProvider).binders,
-    );
-    if (collectionId == null || !context.mounted) return;
-    final cardId = await showMissingCardPicker(
-      context,
-      ref
-          .read(binderProvider)
-          .cards
-          .where((card) => card.memberId == collectionId)
-          .toList(),
-    );
-    if (cardId == null || !context.mounted) return;
-
     final notifier = ref.read(binderProvider.notifier);
-    notifier.setSaving(true);
-    try {
-      final imagePath = await ref.read(photocardScannerProvider).scanAndStore();
-      if (imagePath != null) {
-        notifier.registerCardPhoto(cardId: cardId, imagePath: imagePath);
-        final card = ref
-            .read(binderProvider)
-            .cards
-            .firstWhere((item) => item.id == cardId);
-        if (context.mounted) await _recordCard(context, ref, card);
-      }
-    } finally {
-      notifier.setSaving(false);
-    }
+    final card = notifier.addCard(
+      collectionId: collectionId,
+      title: input.title,
+      memo: input.memo,
+    );
+    await _registerSlot(context, ref, card);
   }
+
 }
 
 class _ScanButton extends StatelessWidget {

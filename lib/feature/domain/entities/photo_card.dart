@@ -41,6 +41,7 @@ class PhotoCard {
     String? version,
     String? benefitSource,
     DateTime? acquiredAt,
+    bool clearAcquiredAt = false,
     String? price,
     String? memo,
   }) => PhotoCard(
@@ -51,7 +52,7 @@ class PhotoCard {
     album: album ?? this.album,
     version: version ?? this.version,
     benefitSource: benefitSource ?? this.benefitSource,
-    acquiredAt: acquiredAt ?? this.acquiredAt,
+    acquiredAt: clearAcquiredAt ? null : (acquiredAt ?? this.acquiredAt),
     price: price ?? this.price,
     memo: memo ?? this.memo,
     createdAt: createdAt,

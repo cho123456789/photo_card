@@ -11,7 +11,6 @@ class MemberBinder {
     this.coverTitle,
     this.coverSubtitle,
     this.themeId = 'glitter',
-    this.stickerIds = const ['sparkles'],
   });
 
   /// 저장·조회에 사용하는 고유 키입니다.
@@ -26,7 +25,6 @@ class MemberBinder {
   final String? coverTitle;
   final String? coverSubtitle;
   final String themeId;
-  final List<String> stickerIds;
 
   MemberBinder copyWith({
     String? coverImagePath,
@@ -34,7 +32,6 @@ class MemberBinder {
     String? coverTitle,
     String? coverSubtitle,
     String? themeId,
-    List<String>? stickerIds,
   }) => MemberBinder(
     id: id,
     name: name,
@@ -44,6 +41,5 @@ class MemberBinder {
     coverTitle: coverTitle ?? this.coverTitle,
     coverSubtitle: coverSubtitle ?? this.coverSubtitle,
     themeId: themeId ?? this.themeId,
-    stickerIds: stickerIds ?? this.stickerIds,
   );
 }

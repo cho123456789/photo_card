@@ -43,6 +43,7 @@ Widget previewEmptyBinderDetail() => _PreviewApp(
     onAddCard: previewIgnoreCreate,
     onDecorate: previewIgnoreCreate,
     onRecord: previewIgnoreRecord,
+    onRegisterCard: previewIgnoreRegister,
   ),
 );
 
@@ -56,6 +57,7 @@ Widget previewBinderDetailWithCards() => _PreviewApp(
     onAddCard: previewIgnoreCreate,
     onDecorate: previewIgnoreCreate,
     onRecord: previewIgnoreRecord,
+    onRegisterCard: previewIgnoreRegister,
   ),
 );
 
@@ -67,6 +69,7 @@ Future<void> previewIgnoreDelete(PhotoCard _) async {}
 Future<void> previewIgnoreDeleteBinder() async {}
 Future<void> previewIgnoreDeleteMemberBinder(MemberBinder _) async {}
 void previewIgnoreRecord(PhotoCard _) {}
+Future<void> previewIgnoreRegister(PhotoCard _) async {}
 
 /// 프리뷰에서도 앱과 같은 Material 테마·Scaffold 환경을 제공합니다.
 class _PreviewApp extends StatelessWidget {

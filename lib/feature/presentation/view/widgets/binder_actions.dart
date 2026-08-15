@@ -20,9 +20,10 @@ class CreateBinderInput {
 }
 
 class CreatePhotoCardInput {
-  const CreatePhotoCardInput({required this.title});
+  const CreatePhotoCardInput({required this.title, required this.memo});
 
   final String title;
+  final String memo;
 }
 
 class PhotoCardRecordInput {
@@ -114,11 +115,15 @@ Future<PhotoCardRecordInput?> showPhotoCardRecordDialog(
       ),
     ),
   );
-  album.dispose();
-  version.dispose();
-  benefitSource.dispose();
-  price.dispose();
-  memo.dispose();
+  // The route's exit animation can still access these controllers after
+  // showDialog completes.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    album.dispose();
+    version.dispose();
+    benefitSource.dispose();
+    price.dispose();
+    memo.dispose();
+  });
   return result;
 }
 
@@ -129,7 +134,6 @@ class BinderDecorationInput {
     required this.coverTitle,
     required this.coverSubtitle,
     required this.themeId,
-    required this.stickerIds,
   });
 
   final String? coverImagePath;
@@ -137,7 +141,6 @@ class BinderDecorationInput {
   final String coverTitle;
   final String coverSubtitle;
   final String themeId;
-  final List<String> stickerIds;
 }
 
 Future<BinderDecorationInput?> showBinderDecorationSheet(
@@ -149,7 +152,6 @@ Future<BinderDecorationInput?> showBinderDecorationSheet(
   final subtitle = TextEditingController(text: binder.coverSubtitle ?? binder.group);
   var selectedCover = binder.coverImagePath;
   var themeId = binder.themeId;
-  final stickers = {...binder.stickerIds};
   final ownedCards = cards.where((card) => card.isOwned).toList();
   final result = await showModalBottomSheet<BinderDecorationInput>(
     context: context,
@@ -216,16 +218,6 @@ Future<BinderDecorationInput?> showBinderDecorationSheet(
                     onSelected: (_) => setSheetState(() => themeId = entry.key),
                   )).toList(),
                 ),
-                const SizedBox(height: 18),
-                const Text('스티커', style: TextStyle(fontWeight: FontWeight.bold)),
-                Wrap(
-                  spacing: 8,
-                  children: const [('sparkles', '✦'), ('heart', '♥'), ('ribbon', '🎀'), ('star', '★')].map((item) => FilterChip(
-                    label: Text(item.$2),
-                    selected: stickers.contains(item.$1),
-                    onSelected: (selected) => setSheetState(() => selected ? stickers.add(item.$1) : stickers.remove(item.$1)),
-                  )).toList(),
-                ),
                 const SizedBox(height: 20),
                 SizedBox(
                   width: double.infinity,
@@ -236,7 +228,6 @@ Future<BinderDecorationInput?> showBinderDecorationSheet(
                       coverTitle: title.text.trim(),
                       coverSubtitle: subtitle.text.trim(),
                       themeId: themeId,
-                      stickerIds: stickers.toList(),
                     )),
                     child: const Text('꾸미기 저장'),
                   ),
@@ -248,8 +239,11 @@ Future<BinderDecorationInput?> showBinderDecorationSheet(
       ),
     ),
   );
-  title.dispose();
-  subtitle.dispose();
+  // The bottom sheet may still be animating out when it returns.
+  WidgetsBinding.instance.addPostFrameCallback((_) {
+    title.dispose();
+    subtitle.dispose();
+  });
   return result;
 }
 
@@ -278,10 +272,11 @@ Future<CreatePhotoCardInput?> showCreatePhotoCardDialog(
 ) async {
   final title = TextEditingController();
   final version = TextEditingController();
+  final memo = TextEditingController();
   final result = await showDialog<CreatePhotoCardInput>(
     context: context,
     builder: (dialogContext) => AlertDialog(
-      title: const Text('포토카드 추가'),
+      title: const Text('포토카드 등록'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -293,6 +288,11 @@ Future<CreatePhotoCardInput?> showCreatePhotoCardDialog(
           TextField(
             controller: version,
             decoration: const InputDecoration(labelText: '버전 (선택)'),
+          ),
+          TextField(
+            controller: memo,
+            maxLines: 3,
+            decoration: const InputDecoration(labelText: '설명 (선택)'),
           ),
         ],
       ),
@@ -310,10 +310,11 @@ Future<CreatePhotoCardInput?> showCreatePhotoCardDialog(
               dialogContext,
               CreatePhotoCardInput(
                 title: cardVersion.isEmpty ? cardName : '$cardName · $cardVersion',
+                memo: memo.text.trim(),
               ),
             );
           },
-          child: const Text('추가'),
+          child: const Text('카메라 열기'),
         ),
       ],
     ),
@@ -321,6 +322,7 @@ Future<CreatePhotoCardInput?> showCreatePhotoCardDialog(
   WidgetsBinding.instance.addPostFrameCallback((_) {
     title.dispose();
     version.dispose();
+    memo.dispose();
   });
   return result;
 }
