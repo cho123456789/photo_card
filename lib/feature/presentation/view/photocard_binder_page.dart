@@ -8,6 +8,7 @@ import '../provider/photocard_scanner_provider.dart';
 import 'widgets/binder_actions.dart';
 import 'widgets/binder_detail.dart';
 import 'widgets/binder_home.dart';
+import 'widgets/binder_statistics.dart';
 
 class PhotocardBinderPage extends ConsumerWidget {
   const PhotocardBinderPage({super.key});
@@ -31,6 +32,19 @@ class PhotocardBinderPage extends ConsumerWidget {
               ),
         title: Text(selected?.name ?? '포토카드 바인더'),
         actions: [
+          if (selected == null)
+            IconButton(
+              tooltip: '통계',
+              icon: const Icon(Icons.bar_chart_outlined),
+              onPressed: () => Navigator.of(context).push(
+                MaterialPageRoute<void>(
+                  builder: (_) => BinderStatisticsPage(
+                    binders: state.binders,
+                    cards: state.cards,
+                  ),
+                ),
+              ),
+            ),
           IconButton(
             tooltip: '컬렉션 만들기',
             onPressed: () => _createCollection(context, ref),
