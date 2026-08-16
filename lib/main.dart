@@ -11,7 +11,7 @@ class PhotocardBinderApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
-    title: 'Pocket Binder',
+    title: 'photo binder',
     theme: ThemeData(useMaterial3: true, colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff7c5cff), brightness: Brightness.dark)),
     home: const PhotocardBinderPage(),
   );

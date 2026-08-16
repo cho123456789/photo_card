@@ -7,7 +7,7 @@
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>
-	<string>Pocket Binder</string>
+	<string>photo binder</string>
 	<key>NSCameraUsageDescription</key>
 	<string>포토카드를 촬영하고 모서리를 보정하기 위해 카메라 접근이 필요합니다.</string>
 	<key>NSPhotoLibraryUsageDescription</key>
@@ -19,7 +19,7 @@
 	<key>CFBundleInfoDictionaryVersion</key>
 	<string>6.0</string>
 	<key>CFBundleName</key>
-	<string>flutter_study</string>
+	<string>photo binder</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>

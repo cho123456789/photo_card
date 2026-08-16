@@ -6,7 +6,7 @@ import '../../../domain/entities/member_binder.dart';
 import '../../../domain/entities/photo_card.dart';
 import 'binder_cover.dart';
 
-class BinderDetail extends StatelessWidget {
+class BinderDetail extends StatefulWidget {
   const BinderDetail({
     super.key,
     required MemberBinder binder,
@@ -27,6 +27,24 @@ class BinderDetail extends StatelessWidget {
   final VoidCallback onDecorate;
   final ValueChanged<PhotoCard> onRecord;
   final Future<void> Function(PhotoCard card) onRegisterCard;
+
+  @override
+  State<BinderDetail> createState() => _BinderDetailState();
+}
+
+class _BinderDetailState extends State<BinderDetail> {
+  final Set<String> _selectedCardIds = {};
+  bool _isSelectingCards = false;
+
+  MemberBinder get _binder => widget._binder;
+  List<PhotoCard> get cards => widget.cards;
+  Future<void> Function(PhotoCard card) get onDelete => widget.onDelete;
+  Future<void> Function() get onDeleteBinder => widget.onDeleteBinder;
+  VoidCallback get onAddCard => widget.onAddCard;
+  VoidCallback get onDecorate => widget.onDecorate;
+  ValueChanged<PhotoCard> get onRecord => widget.onRecord;
+  Future<void> Function(PhotoCard card) get onRegisterCard =>
+      widget.onRegisterCard;
 
   @override
   Widget build(BuildContext context) {
@@ -116,6 +134,26 @@ class BinderDetail extends StatelessWidget {
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                 ),
+                if (_isSelectingCards) ...[
+                  Text('${_selectedCardIds.length}개 선택'),
+                  IconButton(
+                    tooltip: '선택 취소',
+                    icon: const Icon(Icons.close),
+                    onPressed: _cancelCardSelection,
+                  ),
+                  IconButton(
+                    tooltip: '선택한 카드 삭제',
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: _selectedCardIds.isEmpty
+                        ? null
+                        : () => _confirmDeleteSelectedCards(context),
+                  ),
+                ] else
+                  IconButton(
+                    tooltip: '카드 선택 삭제',
+                    icon: const Icon(Icons.delete_outline),
+                    onPressed: _startCardSelection,
+                  ),
               ],
             ),
             Text('$owned / ${cards.length} 보유'),
@@ -146,6 +184,9 @@ class BinderDetail extends StatelessWidget {
                       onRemovePhoto: () => onDelete(cards[index]),
                       onRecord: () => onRecord(cards[index]),
                       onRegister: () => onRegisterCard(cards[index]),
+                      isSelecting: _isSelectingCards,
+                      isSelected: _selectedCardIds.contains(cards[index].id),
+                      onToggleSelection: () => _toggleCardSelection(cards[index].id),
                     )
                   : _EmptyPhotoCardSlot(
                       color: Color(_binder.colorValue),
@@ -155,6 +196,46 @@ class BinderDetail extends StatelessWidget {
           ],
         ),
       );
+
+  void _startCardSelection() => setState(() => _isSelectingCards = true);
+
+  void _cancelCardSelection() => setState(() {
+    _isSelectingCards = false;
+    _selectedCardIds.clear();
+  });
+
+  void _toggleCardSelection(String cardId) => setState(() {
+    if (!_selectedCardIds.add(cardId)) _selectedCardIds.remove(cardId);
+  });
+
+  Future<void> _confirmDeleteSelectedCards(BuildContext context) async {
+    final selectedCards = cards
+        .where((card) => _selectedCardIds.contains(card.id))
+        .toList();
+    if (selectedCards.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('${selectedCards.length}장의 포토카드를 삭제할까요?'),
+        content: const Text('선택한 포토카드와 등록된 사진 및 기록이 함께 삭제되며 복구할 수 없습니다.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('삭제'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+
+    await Future.wait(selectedCards.map(onDelete));
+    if (mounted) _cancelCardSelection();
+  }
 
   Future<void> _confirmBinderDelete(
     BuildContext context,
@@ -211,6 +292,9 @@ class _PhotoCardTile extends StatelessWidget {
     required this.onRemovePhoto,
     required this.onRecord,
     required this.onRegister,
+    required this.isSelecting,
+    required this.isSelected,
+    required this.onToggleSelection,
   });
 
   final PhotoCard card;
@@ -218,6 +302,11 @@ class _PhotoCardTile extends StatelessWidget {
   final Future<void> Function() onRemovePhoto;
   final VoidCallback onRecord;
   final Future<void> Function() onRegister;
+  final bool isSelecting;
+  final bool isSelected;
+  final VoidCallback onToggleSelection;
+
+  bool get _usesSelectionDeletion => true;
 
   @override
   Widget build(BuildContext context) => ClipRRect(
@@ -225,7 +314,29 @@ class _PhotoCardTile extends StatelessWidget {
     child: Stack(
       fit: StackFit.expand,
       children: [
-        card.isOwned ? _ownedCard(context) : _missingCard(),
+        GestureDetector(
+          onTap: isSelecting
+              ? onToggleSelection
+              : card.isOwned
+              ? () => _showPhotoCardPreview(context)
+              : null,
+          child: card.isOwned
+              ? _ownedCard(context)
+              : _missingCard(isSelecting: isSelecting),
+        ),
+        if (isSelecting)
+          Positioned(
+            top: 2,
+            right: 2,
+            child: IgnorePointer(
+              child: Checkbox(
+                value: isSelected,
+                onChanged: (_) {},
+                materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              ),
+            ),
+          ),
+        if (!isSelecting)
         Positioned(
           left: 2,
           bottom: 2,
@@ -246,8 +357,8 @@ class _PhotoCardTile extends StatelessWidget {
     ),
   );
 
-  Widget _missingCard() => GestureDetector(
-    onTap: onRegister,
+  Widget _missingCard({required bool isSelecting}) => GestureDetector(
+    onTap: isSelecting ? null : onRegister,
     child: DecoratedBox(
       decoration: BoxDecoration(
         color: color.withValues(alpha: .15),
@@ -278,6 +389,44 @@ class _PhotoCardTile extends StatelessWidget {
     ),
   );
 
+  Future<void> _showPhotoCardPreview(BuildContext context) => showDialog<void>(
+    context: context,
+    builder: (dialogContext) => Dialog.fullscreen(
+      backgroundColor: Colors.black,
+      child: SafeArea(
+        child: Stack(
+          children: [
+            Center(
+              child: InteractiveViewer(
+                minScale: 0.8,
+                maxScale: 4,
+                child: Image.file(
+                  File(card.imagePath!),
+                  fit: BoxFit.contain,
+                  errorBuilder: (_, _, _) => const Icon(
+                    Icons.broken_image_outlined,
+                    color: Colors.white,
+                    size: 48,
+                  ),
+                ),
+              ),
+            ),
+            Positioned(
+              top: 8,
+              right: 8,
+              child: IconButton(
+                tooltip: '닫기',
+                color: Colors.white,
+                icon: const Icon(Icons.close),
+                onPressed: () => Navigator.pop(dialogContext),
+              ),
+            ),
+          ],
+        ),
+      ),
+    ),
+  );
+
   Widget _ownedCard(BuildContext context) => Stack(
     fit: StackFit.expand,
     children: [
@@ -286,7 +435,7 @@ class _PhotoCardTile extends StatelessWidget {
         fit: BoxFit.cover,
         errorBuilder: (_, _, _) => ColoredBox(color: color),
       ),
-      Positioned(
+      if (!_usesSelectionDeletion) Positioned(
         top: 2,
         right: 2,
         child: Material(

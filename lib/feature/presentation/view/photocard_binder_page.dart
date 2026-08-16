@@ -58,14 +58,6 @@ class PhotocardBinderPage extends ConsumerWidget {
               onRecord: (card) => _recordCard(context, ref, card),
               onRegisterCard: (card) => _registerSlot(context, ref, card),
             ),
-      floatingActionButton: selected == null && state.binders.isEmpty
-          ? _ScanButton(
-              isSaving: state.isSaving,
-              hasCollections: false,
-              onCreate: () => _createCollection(context, ref),
-              onScan: () {},
-            )
-          : null,
     );
   }
 
@@ -95,11 +87,6 @@ class PhotocardBinderPage extends ConsumerWidget {
     final input = await showBinderDecorationSheet(
       context,
       binder: binder,
-      cards: ref
-          .read(binderProvider)
-          .cards
-          .where((card) => card.memberId == binder.id)
-          .toList(),
     );
     if (input == null || !context.mounted) return;
     ref.read(binderProvider.notifier).decorateBinder(
@@ -153,30 +140,4 @@ class PhotocardBinderPage extends ConsumerWidget {
     await _registerSlot(context, ref, card);
   }
 
-}
-
-class _ScanButton extends StatelessWidget {
-  const _ScanButton({
-    required this.isSaving,
-    required this.hasCollections,
-    required this.onCreate,
-    required this.onScan,
-  });
-  final bool isSaving;
-  final bool hasCollections;
-  final VoidCallback onCreate;
-  final VoidCallback onScan;
-
-  @override
-  Widget build(BuildContext context) => FloatingActionButton.extended(
-    onPressed: isSaving ? null : (hasCollections ? onScan : onCreate),
-    icon: isSaving
-        ? const SizedBox(
-            width: 20,
-            height: 20,
-            child: CircularProgressIndicator(),
-          )
-        : Icon(hasCollections ? Icons.document_scanner : Icons.add),
-    label: Text(hasCollections ? '포토카드 등록' : '컬렉션 만들기'),
-  );
 }

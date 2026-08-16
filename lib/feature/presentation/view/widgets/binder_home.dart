@@ -104,10 +104,17 @@ class _EmptyCollection extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Center(
-    child: FilledButton.icon(
-      onPressed: onCreate,
-      icon: const Icon(Icons.add),
-      label: const Text('컬렉션 만들기'),
+    child: SizedBox(
+      width: 240,
+      height: 64,
+      child: FilledButton.icon(
+        onPressed: onCreate,
+        icon: const Icon(Icons.add, size: 28),
+        label: const Text(
+          '컬렉션 만들기',
+          style: TextStyle(fontSize: 18),
+        ),
+      ),
     ),
   );
 }

@@ -146,13 +146,11 @@ class BinderDecorationInput {
 Future<BinderDecorationInput?> showBinderDecorationSheet(
   BuildContext context, {
   required MemberBinder binder,
-  required List<PhotoCard> cards,
 }) async {
   final title = TextEditingController(text: binder.coverTitle ?? binder.name);
   final subtitle = TextEditingController(text: binder.coverSubtitle ?? binder.group);
   var selectedCover = binder.coverImagePath;
   var themeId = binder.themeId;
-  final ownedCards = cards.where((card) => card.isOwned).toList();
   final result = await showModalBottomSheet<BinderDecorationInput>(
     context: context,
     isScrollControlled: true,
@@ -194,15 +192,6 @@ Future<BinderDecorationInput?> showBinderDecorationSheet(
                         onSelected: (_) => setSheetState(() => selectedCover = null),
                       ),
                       const SizedBox(width: 8),
-                      ...ownedCards.map((card) => Padding(
-                        padding: const EdgeInsets.only(right: 8),
-                        child: ChoiceChip(
-                          avatar: ClipOval(child: Image.file(File(card.imagePath!), width: 24, height: 24, fit: BoxFit.cover)),
-                          label: Text(card.title, overflow: TextOverflow.ellipsis),
-                          selected: selectedCover == card.imagePath,
-                          onSelected: (_) => setSheetState(() => selectedCover = card.imagePath),
-                        ),
-                      )),
                     ],
                   ),
                 ),
