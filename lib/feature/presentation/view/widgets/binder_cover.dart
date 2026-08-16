@@ -45,29 +45,37 @@ class BinderCover extends StatelessWidget {
                 ),
               ),
             ),
-            Positioned(
-              left: compact ? 10 : 22,
-              right: compact ? 10 : 22,
-              bottom: compact ? 10 : 20,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    binder.coverTitle?.isNotEmpty == true ? binder.coverTitle! : binder.name,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.white, fontSize: compact ? 14 : 27, fontWeight: FontWeight.w800),
-                  ),
-                  Text(
-                    binder.coverSubtitle?.isNotEmpty == true ? binder.coverSubtitle! : binder.group,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: TextStyle(color: Colors.white.withValues(alpha: .86), fontSize: compact ? 9 : 13),
-                  ),
-                ],
+            if (!compact)
+              Positioned(
+                left: 22,
+                right: 22,
+                bottom: 20,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      binder.coverTitle?.isNotEmpty == true ? binder.coverTitle! : binder.name,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 27,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    Text(
+                      binder.coverSubtitle?.isNotEmpty == true ? binder.coverSubtitle! : binder.group,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: Colors.white.withValues(alpha: .86),
+                        fontSize: 13,
+                      ),
+                    ),
+                  ],
+                ),
               ),
-            ),
           ],
         ),
       ),

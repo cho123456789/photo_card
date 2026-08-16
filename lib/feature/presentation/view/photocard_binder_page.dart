@@ -1,5 +1,10 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:image_cropper/image_cropper.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:path_provider/path_provider.dart';
 
 import '../../domain/entities/member_binder.dart';
 import '../../domain/entities/photo_card.dart';
@@ -22,8 +27,10 @@ class PhotocardBinderPage extends ConsumerWidget {
         : state.binders
               .where((binder) => binder.id == state.selectedBinderId)
               .firstOrNull;
-    return Scaffold(
-      appBar: AppBar(
+    return WillPopScope(
+      onWillPop: () => _handleBack(context, notifier, selected != null),
+      child: Scaffold(
+        appBar: AppBar(
         leading: selected == null
             ? null
             : IconButton(
@@ -52,15 +59,15 @@ class PhotocardBinderPage extends ConsumerWidget {
           ),
         ],
       ),
-      body: selected == null
-          ? BinderHome(
+        body: selected == null
+            ? BinderHome(
               binders: state.binders,
               cards: state.cards,
               onOpen: notifier.openBinder,
               onCreate: () => _createCollection(context, ref),
               onDelete: notifier.deleteBinder,
             )
-          : BinderDetail(
+            : BinderDetail(
               binder: selected,
               cards: state.cards
                   .where((card) => card.memberId == selected.id)
@@ -71,8 +78,39 @@ class PhotocardBinderPage extends ConsumerWidget {
               onDecorate: () => _decorateBinder(context, ref, selected),
               onRecord: (card) => _recordCard(context, ref, card),
               onRegisterCard: (card) => _registerSlot(context, ref, card),
-            ),
+              ),
+      ),
     );
+  }
+
+  Future<bool> _handleBack(
+    BuildContext context,
+    BinderNotifier notifier,
+    bool isViewingBinder,
+  ) async {
+    if (isViewingBinder) {
+      notifier.closeBinder();
+      return false;
+    }
+
+    final shouldExit = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('앱을 종료할까요?'),
+        content: const Text('현재 기기의 컬렉션 데이터는 그대로 유지됩니다.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('종료'),
+          ),
+        ],
+      ),
+    );
+    return shouldExit ?? false;
   }
 
   Future<void> _recordCard(
@@ -126,16 +164,91 @@ class PhotocardBinderPage extends ConsumerWidget {
     WidgetRef ref,
     PhotoCard card,
   ) async {
+    final source = await showModalBottomSheet<_PhotoRegistrationSource>(
+      context: context,
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.document_scanner_outlined),
+              title: const Text('카메라로 등록'),
+              subtitle: const Text('포토카드를 촬영하고 자동으로 보정합니다.'),
+              onTap: () => Navigator.pop(
+                sheetContext,
+                _PhotoRegistrationSource.camera,
+              ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined),
+              title: const Text('앨범에서 선택'),
+              subtitle: const Text('기기에 저장된 사진을 선택합니다.'),
+              onTap: () => Navigator.pop(
+                sheetContext,
+                _PhotoRegistrationSource.gallery,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null || !context.mounted) return;
+
     final notifier = ref.read(binderProvider.notifier);
     notifier.setSaving(true);
     try {
-      final imagePath = await ref.read(photocardScannerProvider).scanAndStore();
+      final imagePath = switch (source) {
+        _PhotoRegistrationSource.camera => await ref
+            .read(photocardScannerProvider)
+            .scanAndStore(),
+        _PhotoRegistrationSource.gallery => await _pickPhotoFromGallery(),
+      };
       if (imagePath != null) {
         notifier.registerCardPhoto(cardId: card.id, imagePath: imagePath);
       }
     } finally {
       notifier.setSaving(false);
     }
+  }
+
+  Future<String?> _pickPhotoFromGallery() async {
+    final picked = await ImagePicker().pickImage(
+      source: ImageSource.gallery,
+      imageQuality: 92,
+    );
+    if (picked == null) return null;
+
+    final cropped = await ImageCropper().cropImage(
+      sourcePath: picked.path,
+      aspectRatio: const CropAspectRatio(ratioX: 68, ratioY: 100),
+      compressFormat: ImageCompressFormat.jpg,
+      compressQuality: 92,
+      uiSettings: [
+        AndroidUiSettings(
+          toolbarTitle: '포토카드 자르기',
+          lockAspectRatio: true,
+          hideBottomControls: true,
+        ),
+        IOSUiSettings(
+          title: '포토카드 자르기',
+          aspectRatioLockEnabled: true,
+          resetAspectRatioEnabled: false,
+        ),
+      ],
+    );
+    if (cropped == null) return null;
+
+    final documents = await getApplicationDocumentsDirectory();
+    final folder = Directory(
+      '${documents.path}${Platform.pathSeparator}photocard_binder',
+    );
+    if (!await folder.exists()) await folder.create(recursive: true);
+
+    final destination = File(
+      '${folder.path}${Platform.pathSeparator}card_${DateTime.now().millisecondsSinceEpoch}.jpg',
+    );
+    await File(cropped.path).copy(destination.path);
+    return destination.path;
   }
 
   Future<void> _createCard(
@@ -155,3 +268,5 @@ class PhotocardBinderPage extends ConsumerWidget {
   }
 
 }
+
+enum _PhotoRegistrationSource { camera, gallery }
