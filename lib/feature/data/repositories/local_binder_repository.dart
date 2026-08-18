@@ -8,9 +8,7 @@ import '../../domain/entities/member_binder.dart';
 import '../../domain/entities/photo_card.dart';
 import '../../domain/repositories/binder_repository.dart';
 
-/// 앱 문서 저장소의 JSON 파일에 바인더 목록을 저장하는 구현체입니다.
 class LocalBinderRepository implements BinderRepository {
-  /// 예전 데이터에 색상값이 없을 때 적용할 기본 팔레트입니다.
   static const _legacyColors = <int>[
     0xffef8cac,
     0xff8094f5,
@@ -22,14 +20,12 @@ class LocalBinderRepository implements BinderRepository {
   @override
   Future<BinderCollection> load() async {
     try {
-      // 앱 전용 JSON 파일이 없으면 최초 실행으로 보고 빈 컬렉션을 반환합니다.
       final file = await _indexFile();
       if (!await file.exists()) {
         return const BinderCollection(binders: [], cards: []);
       }
       final index =
-          jsonDecode(await file.readAsString()) as Map<String, dynamic>;
-      // JSON(Map) 데이터를 도메인 엔티티로 역직렬화합니다.
+          jsonDecode(await file.readAsString()) as Map<String, dynamic>;  // Map
       final binderData = index['binders'] as List<dynamic>;
       final binders = <MemberBinder>[];
       for (var i = 0; i < binderData.length; i++) {
@@ -49,14 +45,13 @@ class LocalBinderRepository implements BinderRepository {
           ),
         );
       }
-      // 카드도 UI와 무관한 PhotoCard 엔티티로 복원합니다.
       final cards = (index['cards'] as List<dynamic>).map((raw) {
         final data = raw as Map<String, dynamic>;
         return PhotoCard(
           id: data['id'] as String,
           memberId: data['memberId'] as String,
-          title: (data['title'] as String?) ?? '등록한 포토카드',
-          imagePath: data['imagePath'] as String?,
+          title: (data['title'] as String?) ?? '',
+          imagePath: data['imagePath'] as String? ,
           album: (data['album'] as String?) ?? '',
           version: (data['version'] as String?) ?? '',
           benefitSource: (data['benefitSource'] as String?) ?? '',
@@ -71,21 +66,17 @@ class LocalBinderRepository implements BinderRepository {
       return BinderCollection(
         binders: binders,
         cards: cards,
-        groupIds: (index['groupIds'] as List<dynamic>? ?? []).cast<String>(),
       );
     } catch (_) {
-      // 손상된 파일 때문에 앱 실행이 막히지 않도록 빈 상태로 복구합니다.
       return const BinderCollection(binders: [], cards: []);
     }
   }
 
   @override
   Future<void> save(BinderCollection collection) async {
-    // 엔티티를 JSON으로 바꿔 한 파일에 저장합니다.
     final file = await _indexFile();
     await file.writeAsString(
       jsonEncode({
-        'groupIds': collection.groupIds,
         'binders': collection.binders
             .map(
               (binder) => {
@@ -121,8 +112,8 @@ class LocalBinderRepository implements BinderRepository {
     );
   }
 
+
   Future<File> _indexFile() async {
-    // 캐시가 아닌 앱 문서 폴더를 사용하므로 OS가 임의로 지우지 않습니다.
     final directory = await getApplicationDocumentsDirectory();
     return File(
       '${directory.path}${Platform.pathSeparator}photocard_binder.json',
