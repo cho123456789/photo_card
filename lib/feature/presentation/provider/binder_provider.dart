@@ -50,7 +50,6 @@ class BinderNotifier extends Notifier<BinderState> {
     0xff69b9a8,
     0xffa98ae8,
   ];
-  late final BinderRepository _repository;
   late final LoadBinderCollection _loadBinderCollection;
   late final SaveBinderCollection _saveBinderCollection;
   final _createMemberBinder = const CreateMemberBinder();
@@ -63,9 +62,9 @@ class BinderNotifier extends Notifier<BinderState> {
 
   @override
   BinderState build() {
-    _repository = ref.read(binderRepositoryProvider);
-    _loadBinderCollection = LoadBinderCollection(_repository);
-    _saveBinderCollection = SaveBinderCollection(_repository);
+    final repository = ref.read(binderRepositoryProvider);
+    _loadBinderCollection = LoadBinderCollection(repository);
+    _saveBinderCollection = SaveBinderCollection(repository);
     Future<void>.microtask(_restore);
     return const BinderState(binders: [], cards: []);
   }
