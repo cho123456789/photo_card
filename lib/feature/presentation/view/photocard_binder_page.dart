@@ -66,6 +66,10 @@ class PhotocardBinderPage extends ConsumerWidget {
               onOpen: notifier.openBinder,
               onCreate: () => _createCollection(context, ref),
               onDelete: notifier.deleteBinder,
+              onRename: (binder, name) => notifier.renameBinder(
+                binderId: binder.id,
+                name: name,
+              ),
             )
             : BinderDetail(
               binder: selected,
@@ -74,6 +78,10 @@ class PhotocardBinderPage extends ConsumerWidget {
                   .toList(),
               onDelete: notifier.deleteCard,
               onDeleteBinder: () => notifier.deleteBinder(selected),
+              onRenameBinder: (name) => notifier.renameBinder(
+                binderId: selected.id,
+                name: name,
+              ),
               onAddCard: () => _createCard(context, ref, selected.id),
               onDecorate: () => _decorateBinder(context, ref, selected),
               onRecord: (card) => _recordCard(context, ref, card),

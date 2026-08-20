@@ -27,6 +27,7 @@ class MemberBinder {
   final String themeId;
 
   MemberBinder copyWith({
+    String? name,
     String? coverImagePath,
     bool clearCoverImage = false,
     String? coverTitle,
@@ -34,7 +35,7 @@ class MemberBinder {
     String? themeId,
   }) => MemberBinder(
     id: id,
-    name: name,
+    name: name ?? this.name,
     group: group,
     colorValue: colorValue,
     coverImagePath: clearCoverImage ? null : (coverImagePath ?? this.coverImagePath),

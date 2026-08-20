@@ -13,6 +13,7 @@ class BinderDetail extends StatefulWidget {
     required this.cards,
     required this.onDelete,
     required this.onDeleteBinder,
+    required this.onRenameBinder,
     required this.onAddCard,
     required this.onDecorate,
     required this.onRecord,
@@ -23,6 +24,7 @@ class BinderDetail extends StatefulWidget {
   final List<PhotoCard> cards;
   final Future<void> Function(PhotoCard card) onDelete;
   final Future<void> Function() onDeleteBinder;
+  final ValueChanged<String> onRenameBinder;
   final VoidCallback onAddCard;
   final VoidCallback onDecorate;
   final ValueChanged<PhotoCard> onRecord;
@@ -40,6 +42,7 @@ class _BinderDetailState extends State<BinderDetail> {
   List<PhotoCard> get cards => widget.cards;
   Future<void> Function(PhotoCard card) get onDelete => widget.onDelete;
   Future<void> Function() get onDeleteBinder => widget.onDeleteBinder;
+  ValueChanged<String> get onRenameBinder => widget.onRenameBinder;
   VoidCallback get onAddCard => widget.onAddCard;
   VoidCallback get onDecorate => widget.onDecorate;
   ValueChanged<PhotoCard> get onRecord => widget.onRecord;
@@ -60,7 +63,7 @@ class _BinderDetailState extends State<BinderDetail> {
 
   Widget _buildCoverPage(BuildContext context, int owned, double progress) =>
       SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -81,6 +84,11 @@ class _BinderDetailState extends State<BinderDetail> {
                 onPressed: onDecorate,
               ),
               IconButton(
+                tooltip: '바인더 이름 수정',
+                icon: const Icon(Icons.edit_outlined),
+                onPressed: () => _renameBinder(context),
+              ),
+              IconButton(
                 tooltip: '컬렉션 삭제',
                 icon: const Icon(Icons.delete_outline),
                 onPressed: () => _confirmBinderDelete(context, _binder.name),
@@ -88,7 +96,19 @@ class _BinderDetailState extends State<BinderDetail> {
             ],
           ),
           const SizedBox(height: 4),
-          BinderCover(binder: _binder),
+          DecoratedBox(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(24),
+              boxShadow: [
+                BoxShadow(
+                  color: Color(_binder.colorValue).withValues(alpha: .28),
+                  blurRadius: 24,
+                  offset: const Offset(0, 12),
+                ),
+              ],
+            ),
+            child: BinderCover(binder: _binder),
+          ),
           const SizedBox(height: 16),
           Text(
             '$owned / ${cards.length} 보유',
@@ -122,7 +142,7 @@ class _BinderDetailState extends State<BinderDetail> {
 
   Widget _buildBinderPage(BuildContext context, int owned, double progress) =>
       SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 32),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -174,8 +194,8 @@ class _BinderDetailState extends State<BinderDetail> {
               gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 4,
                 childAspectRatio: .68,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
+                crossAxisSpacing: 12,
+                mainAxisSpacing: 12,
               ),
               itemBuilder: (_, index) => index < cards.length
                   ? _PhotoCardTile(
@@ -196,6 +216,34 @@ class _BinderDetailState extends State<BinderDetail> {
           ],
         ),
       );
+
+  Future<void> _renameBinder(BuildContext context) async {
+    final controller = TextEditingController(text: _binder.name);
+    final name = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('바인더 이름 수정'),
+        content: TextField(
+          controller: controller,
+          autofocus: true,
+          maxLength: 40,
+          decoration: const InputDecoration(hintText: '바인더 이름'),
+          onSubmitted: (value) => Navigator.pop(dialogContext, value),
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('취소')),
+          FilledButton(onPressed: () => Navigator.pop(dialogContext, controller.text), child: const Text('저장')),
+        ],
+      ),
+    );
+    final trimmedName = name?.trim();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      controller.dispose();
+      if (trimmedName?.isNotEmpty == true) {
+        onRenameBinder(trimmedName!);
+      }
+    });
+  }
 
   void _startCardSelection() => setState(() => _isSelectingCards = true);
 

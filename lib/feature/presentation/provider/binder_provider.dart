@@ -128,6 +128,19 @@ class BinderNotifier extends Notifier<BinderState> {
     _save();
   }
 
+  void renameBinder({required String binderId, required String name}) {
+    final trimmedName = name.trim();
+    if (trimmedName.isEmpty) return;
+    state = state.copyWith(
+      binders: state.binders
+          .map((binder) => binder.id == binderId
+              ? binder.copyWith(name: trimmedName)
+              : binder)
+          .toList(),
+    );
+    _save();
+  }
+
   void decorateBinder({
     required String binderId,
     String? coverImagePath,
