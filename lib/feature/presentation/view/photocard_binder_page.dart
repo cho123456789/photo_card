@@ -14,6 +14,7 @@ import 'widgets/binder_actions.dart';
 import 'widgets/binder_detail.dart';
 import 'widgets/binder_home.dart';
 import 'widgets/binder_statistics.dart';
+import 'widgets/paper_background.dart';
 
 class PhotocardBinderPage extends ConsumerWidget {
   const PhotocardBinderPage({super.key});
@@ -30,7 +31,11 @@ class PhotocardBinderPage extends ConsumerWidget {
     return WillPopScope(
       onWillPop: () => _handleBack(context, notifier, selected != null),
       child: Scaffold(
+        backgroundColor: const Color(0xfff3eee5),
         appBar: AppBar(
+        backgroundColor: const Color(0xfff3eee5),
+        foregroundColor: const Color(0xff332e29),
+        surfaceTintColor: Colors.transparent,
         leading: selected == null
             ? null
             : IconButton(
@@ -59,34 +64,36 @@ class PhotocardBinderPage extends ConsumerWidget {
           ),
         ],
       ),
-        body: selected == null
-            ? BinderHome(
-              binders: state.binders,
-              cards: state.cards,
-              onOpen: notifier.openBinder,
-              onCreate: () => _createCollection(context, ref),
-              onDelete: notifier.deleteBinder,
-              onRename: (binder, name) => notifier.renameBinder(
-                binderId: binder.id,
-                name: name,
-              ),
-            )
-            : BinderDetail(
-              binder: selected,
-              cards: state.cards
-                  .where((card) => card.memberId == selected.id)
-                  .toList(),
-              onDelete: notifier.deleteCard,
-              onDeleteBinder: () => notifier.deleteBinder(selected),
-              onRenameBinder: (name) => notifier.renameBinder(
-                binderId: selected.id,
-                name: name,
-              ),
-              onAddCard: () => _createCard(context, ref, selected.id),
-              onDecorate: () => _decorateBinder(context, ref, selected),
-              onRecord: (card) => _recordCard(context, ref, card),
-              onRegisterCard: (card) => _registerSlot(context, ref, card),
-              ),
+        body: PaperBackground(
+          child: selected == null
+              ? BinderHome(
+                  binders: state.binders,
+                  cards: state.cards,
+                  onOpen: notifier.openBinder,
+                  onCreate: () => _createCollection(context, ref),
+                  onDelete: notifier.deleteBinder,
+                  onRename: (binder, name) => notifier.renameBinder(
+                    binderId: binder.id,
+                    name: name,
+                  ),
+                )
+              : BinderDetail(
+                  binder: selected,
+                  cards: state.cards
+                      .where((card) => card.memberId == selected.id)
+                      .toList(),
+                  onDelete: notifier.deleteCard,
+                  onDeleteBinder: () => notifier.deleteBinder(selected),
+                  onRenameBinder: (name) => notifier.renameBinder(
+                    binderId: selected.id,
+                    name: name,
+                  ),
+                  onAddCard: () => _createCard(context, ref, selected.id),
+                  onDecorate: () => _decorateBinder(context, ref, selected),
+                  onRecord: (card) => _recordCard(context, ref, card),
+                  onRegisterCard: (card) => _registerSlot(context, ref, card),
+                ),
+        ),
       ),
     );
   }

@@ -12,7 +12,14 @@ class PhotocardBinderApp extends StatelessWidget {
   Widget build(BuildContext context) => MaterialApp(
     debugShowCheckedModeBanner: false,
     title: 'photo binder',
-    theme: ThemeData(useMaterial3: true, colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xff7c5cff), brightness: Brightness.dark)),
+    theme: ThemeData(
+      useMaterial3: true,
+      scaffoldBackgroundColor: const Color(0xfff3eee5),
+      colorScheme: ColorScheme.fromSeed(
+        seedColor: const Color(0xffc97987),
+        brightness: Brightness.light,
+      ),
+    ),
     home: const PhotocardBinderPage(),
   );
 }

@@ -98,9 +98,9 @@ class _HomeIntro extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      Text('나의 컬렉션', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800)),
+      Text('나의 컬렉션', style: Theme.of(context).textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w800, color: const Color(0xff332e29))),
       const SizedBox(height: 6),
-      Text('좋아하는 순간들을 한 권씩 모아보세요.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: Colors.white60)),
+      Text('좋아하는 순간들을 한 권씩 모아보세요.', style: Theme.of(context).textTheme.bodyMedium?.copyWith(color: const Color(0xff756b61))),
       const SizedBox(height: 18),
       Wrap(spacing: 8, runSpacing: 8, children: [
         _SummaryChip(icon: Icons.menu_book_outlined, label: '$binderCount개 바인더'),
@@ -116,8 +116,8 @@ class _SummaryChip extends StatelessWidget {
   final String label;
   @override
   Widget build(BuildContext context) => DecoratedBox(
-    decoration: BoxDecoration(color: Colors.white.withValues(alpha: .07), borderRadius: BorderRadius.circular(30), border: Border.all(color: Colors.white.withValues(alpha: .08))),
-    child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 16, color: Colors.white70), const SizedBox(width: 6), Text(label, style: const TextStyle(fontWeight: FontWeight.w600))])),
+    decoration: BoxDecoration(color: const Color(0xffe8dfd3), borderRadius: BorderRadius.circular(30), border: Border.all(color: const Color(0xffd8cdbf))),
+    child: Padding(padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8), child: Row(mainAxisSize: MainAxisSize.min, children: [Icon(icon, size: 16, color: const Color(0xff756b61)), const SizedBox(width: 6), Text(label, style: const TextStyle(fontWeight: FontWeight.w600, color: Color(0xff4d453e)))])),
   );
 }
 
