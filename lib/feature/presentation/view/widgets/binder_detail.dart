@@ -325,9 +325,23 @@ class _EmptyPhotoCardSlot extends StatelessWidget {
         borderRadius: BorderRadius.circular(10),
         border: Border.all(color: color.withValues(alpha: .35)),
       ),
-      child: Icon(
-        Icons.add_photo_alternate_outlined,
-        color: color.withValues(alpha: .6),
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.add_photo_alternate_outlined,
+            color: color.withValues(alpha: .6),
+          ),
+          const SizedBox(height: 4),
+          Text(
+            '카드 등록',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: color.withValues(alpha: .75),
+            ),
+          ),
+        ],
       ),
     ),
   );
