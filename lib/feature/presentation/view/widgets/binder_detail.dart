@@ -25,7 +25,7 @@ class BinderDetail extends StatefulWidget {
   final Future<void> Function(PhotoCard card) onDelete;
   final Future<void> Function() onDeleteBinder;
   final ValueChanged<String> onRenameBinder;
-  final VoidCallback onAddCard;
+  final ValueChanged<String?> onAddCard;
   final VoidCallback onDecorate;
   final ValueChanged<PhotoCard> onRecord;
   final Future<void> Function(PhotoCard card) onRegisterCard;
@@ -37,13 +37,14 @@ class BinderDetail extends StatefulWidget {
 class _BinderDetailState extends State<BinderDetail> {
   final Set<String> _selectedCardIds = {};
   bool _isSelectingCards = false;
+  String? _selectedAlbum;
 
   MemberBinder get _binder => widget._binder;
   List<PhotoCard> get cards => widget.cards;
   Future<void> Function(PhotoCard card) get onDelete => widget.onDelete;
   Future<void> Function() get onDeleteBinder => widget.onDeleteBinder;
   ValueChanged<String> get onRenameBinder => widget.onRenameBinder;
-  VoidCallback get onAddCard => widget.onAddCard;
+  ValueChanged<String?> get onAddCard => widget.onAddCard;
   VoidCallback get onDecorate => widget.onDecorate;
   ValueChanged<PhotoCard> get onRecord => widget.onRecord;
   Future<void> Function(PhotoCard card) get onRegisterCard =>
@@ -187,35 +188,140 @@ class _BinderDetailState extends State<BinderDetail> {
               ),
             ),
             const SizedBox(height: 20),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: cards.length < 16 ? 16 : cards.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                childAspectRatio: .68,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-              ),
-              itemBuilder: (_, index) => index < cards.length
-                  ? _PhotoCardTile(
-                      card: cards[index],
-                      color: Color(_binder.colorValue),
-                      onRemovePhoto: () => onDelete(cards[index]),
-                      onRecord: () => onRecord(cards[index]),
-                      onRegister: () => onRegisterCard(cards[index]),
-                      isSelecting: _isSelectingCards,
-                      isSelected: _selectedCardIds.contains(cards[index].id),
-                      onToggleSelection: () => _toggleCardSelection(cards[index].id),
-                    )
-                  : _EmptyPhotoCardSlot(
-                      color: Color(_binder.colorValue),
-                      onTap: onAddCard,
-                    ),
+            _buildAlbumSelector(context),
+            const SizedBox(height: 14),
+            _buildSelectedAlbumCards(context),
+            const SizedBox(height: 16),
+            OutlinedButton.icon(
+              onPressed: () => onAddCard(_selectedAlbumName()),
+              icon: const Icon(Icons.add),
+              label: const Text('직접 카드 추가'),
             ),
           ],
         ),
       );
+
+  List<String> _albumNames() {
+    final sections = <String, List<PhotoCard>>{};
+    for (final card in cards) {
+      final sectionName = card.album.trim().isEmpty ? '기타 카드' : card.album;
+      sections.putIfAbsent(sectionName, () => []).add(card);
+    }
+    return sections.keys.toList();
+  }
+
+  String? _selectedAlbumName() {
+    final albums = _albumNames();
+    if (albums.isEmpty) return null;
+    return albums.contains(_selectedAlbum) ? _selectedAlbum : albums.first;
+  }
+
+  Widget _buildAlbumSelector(BuildContext context) {
+    final albums = _albumNames();
+    if (albums.isEmpty) return const SizedBox.shrink();
+    final selectedAlbum = _selectedAlbumName()!;
+
+    return Row(
+      children: [
+        Expanded(
+          child: DropdownButtonFormField<String>(
+            value: selectedAlbum,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: '앨범 선택',
+              prefixIcon: Icon(Icons.album_outlined),
+            ),
+            items: albums
+                .map(
+                  (album) => DropdownMenuItem(
+                    value: album,
+                    child: Text(album, overflow: TextOverflow.ellipsis),
+                  ),
+                )
+                .toList(),
+            onChanged: (value) => setState(() => _selectedAlbum = value),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSelectedAlbumCards(BuildContext context) {
+    final albums = _albumNames();
+    if (albums.isEmpty) {
+      return GridView.builder(
+        shrinkWrap: true,
+        physics: const NeverScrollableScrollPhysics(),
+        itemCount: 4,
+        gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+          crossAxisCount: 4,
+          childAspectRatio: .68,
+          crossAxisSpacing: 12,
+          mainAxisSpacing: 12,
+        ),
+        itemBuilder: (_, _) => _EmptyPhotoCardSlot(
+          color: Color(_binder.colorValue),
+          onTap: () => onAddCard(null),
+        ),
+      );
+    }
+
+    final selectedAlbum = _selectedAlbumName()!;
+    final sectionCards = cards.where((card) {
+      final album = card.album.trim().isEmpty ? '기타 카드' : card.album;
+      return album == selectedAlbum;
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                '$selectedAlbum · ${sectionCards.length}장',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            Text('${sectionCards.where((card) => card.isOwned).length}장 보유'),
+          ],
+        ),
+        const SizedBox(height: 10),
+        GridView.builder(
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          itemCount: sectionCards.length < 4 ? 4 : sectionCards.length,
+          gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+            crossAxisCount: 4,
+            childAspectRatio: .68,
+            crossAxisSpacing: 12,
+            mainAxisSpacing: 12,
+          ),
+          itemBuilder: (_, index) {
+            if (index >= sectionCards.length) {
+              return _EmptyPhotoCardSlot(
+                color: Color(_binder.colorValue),
+                onTap: () => onAddCard(selectedAlbum),
+              );
+            }
+            final card = sectionCards[index];
+            return _PhotoCardTile(
+              card: card,
+              color: Color(_binder.colorValue),
+              onRemovePhoto: () => onDelete(card),
+              onRecord: () => onRecord(card),
+              onRegister: () => onRegisterCard(card),
+              isSelecting: _isSelectingCards,
+              isSelected: _selectedCardIds.contains(card.id),
+              onToggleSelection: () => _toggleCardSelection(card.id),
+            );
+          },
+        ),
+      ],
+    );
+  }
 
   Future<void> _renameBinder(BuildContext context) async {
     final controller = TextEditingController(text: _binder.name);
@@ -281,7 +387,9 @@ class _BinderDetailState extends State<BinderDetail> {
     );
     if (confirmed != true || !mounted) return;
 
-    await Future.wait(selectedCards.map(onDelete));
+    for (final card in selectedCards) {
+      await onDelete(card);
+    }
     if (mounted) _cancelCardSelection();
   }
 
@@ -381,7 +489,7 @@ class _PhotoCardTile extends StatelessWidget {
               ? onToggleSelection
               : card.isOwned
               ? () => _showPhotoCardPreview(context)
-              : null,
+              : onRegister,
           child: card.isOwned
               ? _ownedCard(context)
               : _missingCard(isSelecting: isSelecting),
@@ -398,23 +506,6 @@ class _PhotoCardTile extends StatelessWidget {
               ),
             ),
           ),
-        if (!isSelecting)
-        Positioned(
-          left: 2,
-          bottom: 2,
-          child: Material(
-            color: Colors.black54,
-            shape: const CircleBorder(),
-            child: IconButton(
-              tooltip: '카드 기록',
-              color: Colors.white,
-              icon: const Icon(Icons.edit_note_outlined, size: 14),
-              padding: EdgeInsets.zero,
-              constraints: const BoxConstraints.tightFor(width: 24, height: 24),
-              onPressed: onRecord,
-            ),
-          ),
-        ),
       ],
     ),
   );
@@ -431,19 +522,19 @@ class _PhotoCardTile extends StatelessWidget {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.add_photo_alternate_outlined, color: color, size: 18),
-            const SizedBox(height: 3),
-            Text(
-              card.title,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
-              textAlign: TextAlign.center,
-              style: const TextStyle(fontSize: 8),
+            Icon(
+              Icons.image_outlined,
+              color: color.withValues(alpha: .75),
+              size: 28,
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 3),
             const Text(
-              '탭하여 등록',
-              style: TextStyle(fontSize: 8, color: Colors.white54),
+              '카드 등록',
+              style: TextStyle(
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                color: Colors.black87,
+              ),
             ),
           ],
         ),

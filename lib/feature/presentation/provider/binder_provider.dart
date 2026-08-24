@@ -1,4 +1,5 @@
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 
 import '../../data/repositories/sqflite_binder_repository.dart';
@@ -18,10 +19,6 @@ import '../../domain/usecases/update_photo_card_record.dart';
 
 part 'binder_provider.freezed.dart';
 
-final binderRepositoryProvider = Provider<BinderRepository>(
-  (ref) => SqfliteBinderRepository(),
-);
-
 @freezed
 abstract class BinderState with _$BinderState {
   const factory BinderState({
@@ -33,16 +30,9 @@ abstract class BinderState with _$BinderState {
   }) = _BinderState;
 }
 
-final binderProvider = NotifierProvider<BinderNotifier, BinderState>(
-  BinderNotifier.new,
-);
-
-
 // binderState = 상태 데이터
-// binderNotifier = 상태를 변경하는 관리자
-// binderProvider 를 watch 하고있는 UI 갱신
-
-class BinderNotifier extends Notifier<BinderState> {
+// BinderNotifier = 상태를 변경하고 화면에 알리는 관리자
+class BinderNotifier extends ChangeNotifier {
   static const _colors = [
     0xffef8cac,
     0xff8094f5,
@@ -52,6 +42,8 @@ class BinderNotifier extends Notifier<BinderState> {
   ];
   late final LoadBinderCollection _loadBinderCollection;
   late final SaveBinderCollection _saveBinderCollection;
+  BinderState _state = const BinderState(binders: [], cards: []);
+  BinderState get state => _state;
   final _createMemberBinder = const CreateMemberBinder();
   final _createPhotoCard = const CreatePhotoCard();
   final _updatePhotoCardRecord = const UpdatePhotoCardRecord();
@@ -60,22 +52,28 @@ class BinderNotifier extends Notifier<BinderState> {
   final _deletePhotoCard = const DeletePhotoCard();
   final _deleteBinder = const DeleteBinder();
 
-  @override
-  BinderState build() {
-    final repository = ref.read(binderRepositoryProvider);
-    _loadBinderCollection = LoadBinderCollection(repository);
-    _saveBinderCollection = SaveBinderCollection(repository);
+  BinderNotifier({BinderRepository? repository}) {
+    final dataRepository = repository ?? SqfliteBinderRepository();
+    _loadBinderCollection = LoadBinderCollection(dataRepository);
+    _saveBinderCollection = SaveBinderCollection(dataRepository);
     Future<void>.microtask(_restore);
-    return const BinderState(binders: [], cards: []);
   }
 
-  void addBinder({required String name, required String group}) {
+  void _setState(BinderState next) {
+    _state = next;
+    notifyListeners();
+  }
+
+  void addBinder({
+    required String name,
+    required String group,
+  }) {
     final binder = _createMemberBinder(
       name: name,
       group: group,
       colorValue: _colors[state.binders.length % _colors.length],
     );
-    state = state.copyWith(binders: [...state.binders, binder]);
+    _setState(state.copyWith(binders: [...state.binders, binder]));
     _save();
   }
 
@@ -99,7 +97,7 @@ class BinderNotifier extends Notifier<BinderState> {
       price: price,
       memo: memo,
     );
-    state = state.copyWith(cards: [...state.cards, card]);
+    _setState(state.copyWith(cards: [...state.cards, card]));
     _save();
     return card;
   }
@@ -113,7 +111,7 @@ class BinderNotifier extends Notifier<BinderState> {
     required String price,
     required String memo,
   }) {
-    state = state.copyWith(
+    _setState(state.copyWith(
       cards: _updatePhotoCardRecord(
         cards: state.cards,
         cardId: cardId,
@@ -122,22 +120,22 @@ class BinderNotifier extends Notifier<BinderState> {
         benefitSource: benefitSource,
         acquiredAt: acquiredAt,
         price: price,
-        memo: memo,
+      memo: memo,
       ),
-    );
+    ));
     _save();
   }
 
   void renameBinder({required String binderId, required String name}) {
     final trimmedName = name.trim();
     if (trimmedName.isEmpty) return;
-    state = state.copyWith(
+    _setState(state.copyWith(
       binders: state.binders
           .map((binder) => binder.id == binderId
               ? binder.copyWith(name: trimmedName)
-              : binder)
+          : binder)
           .toList(),
-    );
+    ));
     _save();
   }
 
@@ -149,7 +147,7 @@ class BinderNotifier extends Notifier<BinderState> {
     required String coverSubtitle,
     required String themeId,
   }) {
-    state = state.copyWith(
+    _setState(state.copyWith(
       binders: _decorateBinder(
         binders: state.binders,
         binderId: binderId,
@@ -159,18 +157,18 @@ class BinderNotifier extends Notifier<BinderState> {
         coverSubtitle: coverSubtitle,
         themeId: themeId,
       ),
-    );
+    ));
     _save();
   }
 
   void registerCardPhoto({required String cardId, required String imagePath}) {
-    state = state.copyWith(
+    _setState(state.copyWith(
       cards: _registerCardPhoto(
         cards: state.cards,
         cardId: cardId,
         imagePath: imagePath,
       ),
-    );
+    ));
     _save();
   }
 
@@ -179,7 +177,7 @@ class BinderNotifier extends Notifier<BinderState> {
       cards: state.cards,
       card: card,
     );
-    state = state.copyWith(cards: result.cards);
+    _setState(state.copyWith(cards: result.cards));
     _save();
   }
 
@@ -189,25 +187,25 @@ class BinderNotifier extends Notifier<BinderState> {
       cards: state.cards,
       binder: binder,
     );
-    state = state.copyWith(
+    _setState(state.copyWith(
       binders: result.binders,
       cards: result.cards,
       selectedBinderId: null,
-    );
+    ));
     _save();
   }
 
-  void openBinder(String id) => state = state.copyWith(selectedBinderId: id);
-  void closeBinder() => state = state.copyWith(selectedBinderId: null);
-  void setSaving(bool value) => state = state.copyWith(isSaving: value);
-  void selectTab(int value) => state = state.copyWith(tab: value);
+  void openBinder(String id) => _setState(state.copyWith(selectedBinderId: id));
+  void closeBinder() => _setState(state.copyWith(selectedBinderId: null));
+  void setSaving(bool value) => _setState(state.copyWith(isSaving: value));
+  void selectTab(int value) => _setState(state.copyWith(tab: value));
 
   Future<void> _restore() async {
     final saved = await _loadBinderCollection();
-    state = state.copyWith(
+    _setState(state.copyWith(
       binders: saved.binders,
       cards: saved.cards,
-    );
+    ));
   }
 
   void _save() => Future<void>.microtask(
@@ -218,4 +216,11 @@ class BinderNotifier extends Notifier<BinderState> {
       ),
     ),
   );
+}
+
+class BinderScope extends InheritedNotifier<BinderNotifier> {
+  const BinderScope({super.key, required super.notifier, required super.child});
+
+  static BinderNotifier of(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<BinderScope>()!.notifier!;
 }

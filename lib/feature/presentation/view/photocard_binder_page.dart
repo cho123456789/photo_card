@@ -16,13 +16,13 @@ import 'widgets/binder_home.dart';
 import 'widgets/binder_statistics.dart';
 import 'widgets/paper_background.dart';
 
-class PhotocardBinderPage extends ConsumerWidget {
+class PhotocardBinderPage extends StatelessWidget {
   const PhotocardBinderPage({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final state = ref.watch(binderProvider);
-    final notifier = ref.read(binderProvider.notifier);
+  Widget build(BuildContext context) {
+    final notifier = BinderScope.of(context);
+    final state = notifier.state;
     final selected = state.selectedBinderId == null
         ? null
         : state.binders
@@ -59,7 +59,7 @@ class PhotocardBinderPage extends ConsumerWidget {
             ),
           IconButton(
             tooltip: '컬렉션 만들기',
-            onPressed: () => _createCollection(context, ref),
+            onPressed: () => _createCollection(context, notifier),
             icon: const Icon(Icons.add),
           ),
         ],
@@ -70,7 +70,7 @@ class PhotocardBinderPage extends ConsumerWidget {
                   binders: state.binders,
                   cards: state.cards,
                   onOpen: notifier.openBinder,
-                  onCreate: () => _createCollection(context, ref),
+                  onCreate: () => _createCollection(context, notifier),
                   onDelete: notifier.deleteBinder,
                   onRename: (binder, name) => notifier.renameBinder(
                     binderId: binder.id,
@@ -88,10 +88,15 @@ class PhotocardBinderPage extends ConsumerWidget {
                     binderId: selected.id,
                     name: name,
                   ),
-                  onAddCard: () => _createCard(context, ref, selected.id),
-                  onDecorate: () => _decorateBinder(context, ref, selected),
-                  onRecord: (card) => _recordCard(context, ref, card),
-                  onRegisterCard: (card) => _registerSlot(context, ref, card),
+                  onAddCard: (album) => _createCard(
+                    context,
+                    notifier,
+                    selected.id,
+                    album: album,
+                  ),
+                  onDecorate: () => _decorateBinder(context, notifier, selected),
+                  onRecord: (card) => _recordCard(context, notifier, card),
+                  onRegisterCard: (card) => _registerSlot(context, notifier, card),
                 ),
         ),
       ),
@@ -130,12 +135,14 @@ class PhotocardBinderPage extends ConsumerWidget {
 
   Future<void> _recordCard(
     BuildContext context,
-    WidgetRef ref,
+    BinderNotifier notifier,
     PhotoCard card,
   ) async {
     final input = await showPhotoCardRecordDialog(context, card);
     if (input == null || !context.mounted) return;
-    ref.read(binderProvider.notifier).updateCardRecord(
+    await _waitForOverlayToClose();
+    if (!context.mounted) return;
+    notifier.updateCardRecord(
       cardId: card.id,
       album: input.album,
       version: input.version,
@@ -148,7 +155,7 @@ class PhotocardBinderPage extends ConsumerWidget {
 
   Future<void> _decorateBinder(
     BuildContext context,
-    WidgetRef ref,
+    BinderNotifier notifier,
     MemberBinder binder,
   ) async {
     final input = await showBinderDecorationSheet(
@@ -156,7 +163,9 @@ class PhotocardBinderPage extends ConsumerWidget {
       binder: binder,
     );
     if (input == null || !context.mounted) return;
-    ref.read(binderProvider.notifier).decorateBinder(
+    await _waitForOverlayToClose();
+    if (!context.mounted) return;
+    notifier.decorateBinder(
       binderId: binder.id,
       coverImagePath: input.coverImagePath,
       clearCoverImage: input.clearCoverImage,
@@ -166,19 +175,35 @@ class PhotocardBinderPage extends ConsumerWidget {
     );
   }
 
-  Future<void> _createCollection(BuildContext context, WidgetRef ref) async {
+  Future<void> _createCollection(BuildContext context, BinderNotifier notifier) async {
     final input = await showCreateBinderDialog(context);
     if (input == null || !context.mounted) return;
-    ref
-        .read(binderProvider.notifier)
-        .addBinder(name: input.name, group: input.group);
+    await _waitForOverlayToClose();
+    if (!context.mounted) return;
+    notifier.addBinder(
+          name: input.name,
+          group: input.group,
+        );
   }
 
   Future<void> _registerSlot(
     BuildContext context,
-    WidgetRef ref,
+    BinderNotifier notifier,
     PhotoCard card,
+    {bool showRegistrationDialog = true}
   ) async {
+    CreatePhotoCardInput? registration;
+    if (showRegistrationDialog) {
+      registration = await showCreatePhotoCardDialog(
+      context,
+      initialAlbum: card.album,
+      initialTitle: card.title,
+      );
+      if (registration == null || !context.mounted) return;
+      await _waitForOverlayToClose();
+      if (!context.mounted) return;
+    }
+
     final source = await showModalBottomSheet<_PhotoRegistrationSource>(
       context: context,
       builder: (sheetContext) => SafeArea(
@@ -209,16 +234,30 @@ class PhotocardBinderPage extends ConsumerWidget {
     );
     if (source == null || !context.mounted) return;
 
-    final notifier = ref.read(binderProvider.notifier);
     notifier.setSaving(true);
     try {
-      final imagePath = switch (source) {
-        _PhotoRegistrationSource.camera => await ref
-            .read(photocardScannerProvider)
+    final imagePath = switch (source) {
+        _PhotoRegistrationSource.camera => await ProviderScope.containerOf(
+          context,
+          listen: false,
+        ).read(photocardScannerProvider)
             .scanAndStore(),
         _PhotoRegistrationSource.gallery => await _pickPhotoFromGallery(),
-      };
-      if (imagePath != null) {
+    };
+    if (imagePath != null) {
+        await _waitForOverlayToClose();
+        if (!context.mounted) return;
+        if (registration != null) {
+          notifier.updateCardRecord(
+            cardId: card.id,
+            album: registration.album,
+            version: registration.version,
+            benefitSource: registration.benefitSource,
+            acquiredAt: card.acquiredAt ?? DateTime.now(),
+            price: card.price,
+            memo: registration.memo,
+          );
+        }
         notifier.registerCardPhoto(cardId: card.id, imagePath: imagePath);
       }
     } finally {
@@ -268,19 +307,36 @@ class PhotocardBinderPage extends ConsumerWidget {
 
   Future<void> _createCard(
     BuildContext context,
-    WidgetRef ref,
+    BinderNotifier notifier,
     String collectionId,
+    {String? album}
   ) async {
-    final input = await showCreatePhotoCardDialog(context);
+    final input = await showCreatePhotoCardDialog(
+      context,
+      initialAlbum: album,
+    );
     if (input == null || !context.mounted) return;
-    final notifier = ref.read(binderProvider.notifier);
+    await _waitForOverlayToClose();
+    if (!context.mounted) return;
     final card = notifier.addCard(
       collectionId: collectionId,
-      title: input.title,
+      title: input.version.isEmpty
+          ? input.title
+          : '${input.title} · ${input.version}',
+      album: input.album.isEmpty ? album ?? '' : input.album,
+      benefitSource: input.benefitSource,
       memo: input.memo,
     );
-    await _registerSlot(context, ref, card);
+    await _registerSlot(
+      context,
+      notifier,
+      card,
+      showRegistrationDialog: false,
+    );
   }
+
+  Future<void> _waitForOverlayToClose() =>
+      Future<void>.delayed(const Duration(milliseconds: 250));
 
 }
 

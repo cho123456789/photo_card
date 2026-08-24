@@ -19,6 +19,7 @@ Widget previewEmptyBinderHome() => _PreviewApp(
     onOpen: previewIgnoreOpen,
     onCreate: previewIgnoreCreate,
     onDelete: previewIgnoreDeleteMemberBinder,
+    onRename: previewIgnoreRename,
   ),
 );
 
@@ -30,6 +31,7 @@ Widget previewBinderHomeWithMembers() => _PreviewApp(
     onOpen: previewIgnoreOpen,
     onCreate: previewIgnoreCreate,
     onDelete: previewIgnoreDeleteMemberBinder,
+    onRename: previewIgnoreRename,
   ),
 );
 
@@ -40,10 +42,10 @@ Widget previewEmptyBinderDetail() => _PreviewApp(
     cards: const [],
     onDelete: previewIgnoreDelete,
     onDeleteBinder: previewIgnoreDeleteBinder,
-    onAddCard: previewIgnoreCreate,
+    onAddCard: previewIgnoreAddCard,
     onDecorate: previewIgnoreCreate,
     onRecord: previewIgnoreRecord,
-    onRegisterCard: previewIgnoreRegister,
+    onRegisterCard: previewIgnoreRegister, onRenameBinder: (String value) {  },
   ),
 );
 
@@ -54,10 +56,10 @@ Widget previewBinderDetailWithCards() => _PreviewApp(
     cards: [_previewCards.first],
     onDelete: previewIgnoreDelete,
     onDeleteBinder: previewIgnoreDeleteBinder,
-    onAddCard: previewIgnoreCreate,
+    onAddCard: previewIgnoreAddCard,
     onDecorate: previewIgnoreCreate,
     onRecord: previewIgnoreRecord,
-    onRegisterCard: previewIgnoreRegister,
+    onRegisterCard: previewIgnoreRegister, onRenameBinder: (String value) {  },
   ),
 );
 
@@ -65,6 +67,8 @@ Widget previewBinderDetailWithCards() => _PreviewApp(
 /// `@Preview`에 전달하는 콜백은 공개 top-level 함수여야 합니다.
 void previewIgnoreOpen(String _) {}
 void previewIgnoreCreate() {}
+void previewIgnoreRename(MemberBinder _, String __) {}
+void previewIgnoreAddCard(String? _) {}
 Future<void> previewIgnoreDelete(PhotoCard _) async {}
 Future<void> previewIgnoreDeleteBinder() async {}
 Future<void> previewIgnoreDeleteMemberBinder(MemberBinder _) async {}

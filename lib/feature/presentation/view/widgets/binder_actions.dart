@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../../../domain/entities/member_binder.dart';
 import '../../../domain/entities/photo_card.dart';
+import '../../../domain/entities/card_catalog.dart';
 import 'binder_cover.dart';
 
 /// 멤버 생성 다이얼로그에서 받은 입력값입니다.
@@ -13,16 +14,30 @@ import 'binder_cover.dart';
 /// 다이얼로그는 입력만 수집하고, Provider 상태 변경은 다이얼로그가 닫힌 뒤
 /// 화면 계층에서 처리합니다. Overlay가 제거되는 도중 상태가 바뀌는 문제를 막습니다.
 class CreateBinderInput {
-  const CreateBinderInput({required this.name, required this.group});
+  const CreateBinderInput({
+    required this.name,
+    required this.group,
+    required this.cardTemplates,
+  });
 
   final String name;
   final String group;
+  final List<CardTemplate> cardTemplates;
 }
 
 class CreatePhotoCardInput {
-  const CreatePhotoCardInput({required this.title, required this.memo});
+  const CreatePhotoCardInput({
+    required this.title,
+    required this.version,
+    required this.album,
+    required this.benefitSource,
+    required this.memo,
+  });
 
   final String title;
+  final String version;
+  final String album;
+  final String benefitSource;
   final String memo;
 }
 
@@ -46,7 +61,9 @@ class PhotoCardRecordInput {
 
 Future<PhotoCardRecordInput?> showPhotoCardRecordDialog(
   BuildContext context,
-  PhotoCard card,
+  PhotoCard card, {
+  bool isRegistration = false,
+}
 ) async {
   final album = TextEditingController(text: card.album);
   final version = TextEditingController(text: card.version);
@@ -58,14 +75,20 @@ Future<PhotoCardRecordInput?> showPhotoCardRecordDialog(
     context: context,
     builder: (dialogContext) => StatefulBuilder(
       builder: (context, setDialogState) => AlertDialog(
-        title: const Text('카드 기록'),
+        title: Text(isRegistration ? '포토카드 등록' : '카드 상세 정보'),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextField(controller: album, decoration: const InputDecoration(labelText: '앨범명')),
+              TextField(
+                controller: album,
+                decoration: const InputDecoration(labelText: '앨범'),
+              ),
               TextField(controller: version, decoration: const InputDecoration(labelText: '버전')),
-              TextField(controller: benefitSource, decoration: const InputDecoration(labelText: '특전처 / 입수처')),
+              TextField(
+                controller: benefitSource,
+                decoration: const InputDecoration(labelText: '입수처'),
+              ),
               TextField(
                 controller: price,
                 keyboardType: TextInputType.number,
@@ -89,7 +112,7 @@ Future<PhotoCardRecordInput?> showPhotoCardRecordDialog(
               ),
               TextField(
                 controller: memo,
-                maxLines: 3,
+                maxLines: 2,
                 decoration: const InputDecoration(labelText: '메모'),
               ),
             ],
@@ -117,7 +140,7 @@ Future<PhotoCardRecordInput?> showPhotoCardRecordDialog(
   );
   // The route's exit animation can still access these controllers after
   // showDialog completes.
-  WidgetsBinding.instance.addPostFrameCallback((_) {
+  Future<void>.delayed(const Duration(milliseconds: 300), () {
     album.dispose();
     version.dispose();
     benefitSource.dispose();
@@ -229,7 +252,7 @@ Future<BinderDecorationInput?> showBinderDecorationSheet(
     ),
   );
   // The bottom sheet may still be animating out when it returns.
-  WidgetsBinding.instance.addPostFrameCallback((_) {
+  Future<void>.delayed(const Duration(milliseconds: 300), () {
     title.dispose();
     subtitle.dispose();
   });
@@ -258,17 +281,21 @@ Future<String?> _pickBinderCoverFromGallery() async {
 
 Future<CreatePhotoCardInput?> showCreatePhotoCardDialog(
   BuildContext context,
+  {String? initialAlbum, String? initialTitle}
 ) async {
-  final title = TextEditingController();
+  final title = TextEditingController(text: initialTitle ?? '');
   final version = TextEditingController();
+  final album = TextEditingController(text: initialAlbum ?? '');
+  final benefitSource = TextEditingController();
   final memo = TextEditingController();
   final result = await showDialog<CreatePhotoCardInput>(
     context: context,
     builder: (dialogContext) => AlertDialog(
       title: const Text('포토카드 등록'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
           TextField(
             controller: title,
             autofocus: true,
@@ -279,11 +306,20 @@ Future<CreatePhotoCardInput?> showCreatePhotoCardDialog(
             decoration: const InputDecoration(labelText: '버전 (선택)'),
           ),
           TextField(
-            controller: memo,
-            maxLines: 3,
-            decoration: const InputDecoration(labelText: '설명 (선택)'),
+            controller: album,
+            decoration: const InputDecoration(labelText: '앨범 (선택)'),
           ),
-        ],
+          TextField(
+            controller: benefitSource,
+            decoration: const InputDecoration(labelText: '입수처 (선택)'),
+          ),
+          TextField(
+            controller: memo,
+            maxLines: 2,
+            decoration: const InputDecoration(labelText: '메모 (선택)'),
+          ),
+          ],
+        ),
       ),
       actions: [
         TextButton(
@@ -292,13 +328,17 @@ Future<CreatePhotoCardInput?> showCreatePhotoCardDialog(
         ),
         FilledButton(
           onPressed: () {
+            FocusScope.of(dialogContext).unfocus();
             final cardName = title.text.trim();
             if (cardName.isEmpty) return;
             final cardVersion = version.text.trim();
             Navigator.pop(
               dialogContext,
               CreatePhotoCardInput(
-                title: cardVersion.isEmpty ? cardName : '$cardName · $cardVersion',
+                title: cardName,
+                version: cardVersion,
+                album: album.text.trim(),
+                benefitSource: benefitSource.text.trim(),
                 memo: memo.text.trim(),
               ),
             );
@@ -308,9 +348,11 @@ Future<CreatePhotoCardInput?> showCreatePhotoCardDialog(
       ],
     ),
   );
-  WidgetsBinding.instance.addPostFrameCallback((_) {
+  Future<void>.delayed(const Duration(milliseconds: 300), () {
     title.dispose();
     version.dispose();
+    album.dispose();
+    benefitSource.dispose();
     memo.dispose();
   });
   return result;
@@ -319,54 +361,116 @@ Future<CreatePhotoCardInput?> showCreatePhotoCardDialog(
 /// 멤버 이름과 그룹 이름을 입력받고, 확인 시 입력값을 반환하는 다이얼로그입니다.
 Future<CreateBinderInput?> showCreateBinderDialog(BuildContext context) async {
   final name = TextEditingController();
-  final group = TextEditingController();
+  var selectedGroup = CardCatalog.groups.keys.first;
+  final group = TextEditingController(text: selectedGroup);
+  name.text = selectedGroup;
   final result = await showDialog<CreateBinderInput>(
     context: context,
-    builder: (dialogContext) => AlertDialog(
-      title: const Text('컬렉션 만들기'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          TextField(
-            controller: name,
-            autofocus: true,
-            decoration: const InputDecoration(labelText: '컬렉션 이름'),
+    builder: (dialogContext) => StatefulBuilder(
+      builder: (context, setDialogState) => AlertDialog(
+        title: const Text('컬렉션 만들기'),
+        content: SizedBox(
+          width: 420,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextField(
+                  controller: name,
+                  autofocus: true,
+                  decoration: const InputDecoration(labelText: '컬렉션 이름'),
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  value: selectedGroup,
+                  decoration: const InputDecoration(labelText: '그룹 선택'),
+                  items: [
+                    ...CardCatalog.groups.keys.map(
+                      (value) => DropdownMenuItem(value: value, child: Text(value)),
+                    ),
+                    const DropdownMenuItem(
+                      value: '직접 입력',
+                      child: Text('직접 입력'),
+                    ),
+                  ],
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setDialogState(() {
+                      final previousGroup = selectedGroup;
+                      selectedGroup = value;
+                      if (CardCatalog.groups.containsKey(value)) {
+                        group.text = value;
+                        if (name.text.trim().isEmpty ||
+                            name.text.trim() == previousGroup) {
+                          name.text = value;
+                        }
+                      } else {
+                        group.clear();
+                      }
+                    });
+                  },
+                ),
+                if (selectedGroup == '직접 입력')
+                  TextField(
+                    controller: group,
+                    decoration: const InputDecoration(labelText: '그룹 이름'),
+                  ),
+                if (CardCatalog.groups.containsKey(selectedGroup)) ...[
+                  const SizedBox(height: 18),
+                  Card(
+                    child: ListTile(
+                      leading: const Icon(Icons.auto_awesome_mosaic_outlined),
+                      title: const Text('빈 카드 등록 칸 4개로 시작합니다'),
+                      subtitle: const Text(
+                        '원하는 칸을 누르면 카드를 등록할 수 있어요.',
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           ),
-          TextField(
-            controller: group,
-            decoration: const InputDecoration(labelText: '그룹 이름 (선택)'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('취소'),
+          ),
+          FilledButton(
+            onPressed: () {
+              final collectionName = name.text.trim();
+              if (collectionName.isEmpty) {
+                ScaffoldMessenger.maybeOf(dialogContext)?.showSnackBar(
+                  const SnackBar(
+                    content: Text('컬렉션 이름을 입력해주세요'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+                return;
+              }
+              // 상태를 직접 바꾸지 않고 입력값만 반환합니다.
+              // Provider 갱신은 다이얼로그가 완전히 닫힌 후 호출됩니다.
+              Navigator.pop(
+                dialogContext,
+                CreateBinderInput(
+                  name: collectionName,
+                  group: group.text.trim().isEmpty
+                      ? 'MY COLLECTION'
+                      : group.text.trim(),
+                  cardTemplates: CardCatalog.groups[selectedGroup] ?? const [],
+                ),
+              );
+            },
+            child: const Text('만들기'),
           ),
         ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(dialogContext),
-          child: const Text('취소'),
-        ),
-        FilledButton(
-          onPressed: () {
-            final collectionName = name.text.trim();
-            if (collectionName.isEmpty) return;
-            // 상태를 직접 바꾸지 않고 입력값만 반환합니다.
-            // Provider 갱신은 다이얼로그가 완전히 닫힌 후 호출됩니다.
-            Navigator.pop(
-              dialogContext,
-              CreateBinderInput(
-                name: collectionName,
-                group: group.text.trim().isEmpty
-                    ? 'MY COLLECTION'
-                    : group.text.trim(),
-              ),
-            );
-          },
-          child: const Text('만들기'),
-        ),
-      ],
-    ),
-  );
+      ), // AlertDialog
+    ), // StatefulBuilder
+  ); // showDialog
   // The dialog's exit animation may still reference these controllers when
   // showDialog completes. Dispose them after that frame has finished.
-  WidgetsBinding.instance.addPostFrameCallback((_) {
+  Future<void>.delayed(const Duration(milliseconds: 300), () {
     name.dispose();
     group.dispose();
   });
