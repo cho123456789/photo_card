@@ -80,6 +80,9 @@ class _OverviewCard extends StatelessWidget {
   final double progress;
   final double totalSpent;
 
+  String get _percentage => '${(progress * 100).round()}%';
+  int get _remaining => total - owned;
+
   @override
   Widget build(BuildContext context) => Card(
     child: Padding(
@@ -97,10 +100,16 @@ class _OverviewCard extends StatelessWidget {
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(
-                      '${(progress * 100).round()}%',
-                      style: Theme.of(context).textTheme.headlineSmall,
+                      _percentage,
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontSize: 22,
+                        height: 1,
+                      ),
                     ),
-                    const Text('보유율'),
+                    const Text(
+                      '보유율',
+                      style: TextStyle(fontSize: 11, height: 1.2),
+                    ),
                   ],
                 ),
               ],
@@ -112,8 +121,29 @@ class _OverviewCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('전체 보유', style: Theme.of(context).textTheme.labelLarge),
-                Text('$owned / $total', style: Theme.of(context).textTheme.headlineSmall),
-                const SizedBox(height: 12),
+                const SizedBox(height: 2),
+                Text(
+                  '$owned장 보유',
+                  style: Theme.of(context).textTheme.headlineSmall,
+                ),
+                Text(
+                  total == 0
+                      ? '아직 등록된 카드가 없어요'
+                      : '총 $total장 중 $_remaining장 남음 · $_percentage',
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                const SizedBox(height: 10),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: LinearProgressIndicator(
+                    value: progress,
+                    minHeight: 7,
+                    backgroundColor: Theme.of(
+                      context,
+                    ).colorScheme.primary.withValues(alpha: .12),
+                  ),
+                ),
+                const SizedBox(height: 14),
                 Text('총 지출', style: Theme.of(context).textTheme.labelLarge),
                 Text(
                   '${totalSpent.round().toString().replaceAllMapped(RegExp(r'(?<!^)(?=(\d{3})+$)'), (_) => ',')}원',
@@ -139,6 +169,8 @@ class _BinderProgressCard extends StatelessWidget {
     final owned = cards.where((card) => card.isOwned).length;
     final progress = cards.isEmpty ? 0.0 : owned / cards.length;
     final color = Color(binder.colorValue);
+    final percentage = '${(progress * 100).round()}%';
+    final remaining = cards.length - owned;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -147,12 +179,42 @@ class _BinderProgressCard extends StatelessWidget {
           children: [
             Row(
               children: [
-                Expanded(child: Text(binder.name, style: const TextStyle(fontWeight: FontWeight.bold))),
-                Text('$owned / ${cards.length}'),
+                Expanded(
+                  child: Text(
+                    binder.name,
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: .13),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    percentage,
+                    style: TextStyle(color: color, fontWeight: FontWeight.w700),
+                  ),
+                ),
               ],
             ),
+            const SizedBox(height: 5),
+            Text(
+              cards.isEmpty
+                  ? '등록된 카드 없음'
+                  : '$owned장 보유 · $remaining장 남음 (총 ${cards.length}장)',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 10),
-            LinearProgressIndicator(value: progress, color: color, minHeight: 8),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(8),
+              child: LinearProgressIndicator(
+                value: progress,
+                color: color,
+                backgroundColor: color.withValues(alpha: .13),
+                minHeight: 9,
+              ),
+            ),
           ],
         ),
       ),
